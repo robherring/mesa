@@ -69,6 +69,8 @@ LOCAL_CFLAGS += \
 	-fvisibility=hidden \
 	-Wno-sign-compare
 
+LOCAL_CFLAGS += -DTEXTURE_FLOAT_ENABLED
+
 LOCAL_CPPFLAGS += \
 	-D__STDC_CONSTANT_MACROS \
 	-D__STDC_FORMAT_MACROS \

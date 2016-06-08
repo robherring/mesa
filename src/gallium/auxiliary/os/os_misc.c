@@ -24,7 +24,10 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  **************************************************************************/
-
+#if defined(PIPE_OS_ANDROID)
+#undef fputs
+#undef fprintf
+#endif
 
 #include "os_misc.h"
 
@@ -46,8 +49,10 @@
 
 #endif
 
-
-#if defined(PIPE_OS_LINUX) || defined(PIPE_OS_CYGWIN) || defined(PIPE_OS_SOLARIS)
+#if defined(PIPE_OS_ANDROID)
+#  define LOG_TAG "gallium"
+#  include <log/log.h>
+#elif defined(PIPE_OS_LINUX) || defined(PIPE_OS_CYGWIN) || defined(PIPE_OS_SOLARIS)
 #  include <unistd.h>
 #elif defined(PIPE_OS_APPLE) || defined(PIPE_OS_BSD)
 #  include <sys/sysctl.h>
@@ -58,7 +63,6 @@
 #else
 #error unexpected platform in os_sysinfo.c
 #endif
-
 
 void
 os_log_message(const char *message)
@@ -100,12 +104,42 @@ os_log_message(const char *message)
       fflush(fout);
    }
 #else /* !PIPE_SUBSYSTEM_WINDOWS */
+#if defined(PIPE_OS_ANDROID)
+   if (fout == stderr) {
+      ALOGD("%s", message);
+      return;
+   }
+#endif
    fflush(stdout);
    fputs(message, fout);
    fflush(fout);
 #endif
 }
 
+#if defined(PIPE_OS_ANDROID)
+int android_fputs(const char * __restrict m, FILE * __restrict f)
+{
+   if (f == stderr)
+      ALOGD("%s", m);
+   else
+      fputs(m, f);
+   return 0;
+}
+
+int fprintf(FILE * __restrict f, const char * __restrict _Nonnull format, ...)
+{
+   va_list ap;
+   va_start(ap, format);
+
+   if (f == stderr)
+      LOG_PRI_VA(ANDROID_LOG_DEBUG, LOG_TAG, format, ap);
+   else
+      vfprintf(f, format, ap);
+
+   va_end(ap);
+   return 0;
+}
+#endif
 
 #if !defined(PIPE_SUBSYSTEM_EMBEDDED)
 const char *

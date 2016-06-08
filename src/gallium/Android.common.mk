@@ -29,4 +29,8 @@ LOCAL_C_INCLUDES += \
 	$(GALLIUM_TOP)/winsys \
 	$(GALLIUM_TOP)/drivers
 
+LOCAL_CFLAGS += \
+	-Dfputs=android_fputs \
+	-Dfprintf=android_fprintf
+
 include $(MESA_COMMON_MK)

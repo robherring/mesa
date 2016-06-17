@@ -47,16 +47,6 @@ struct fd_screen {
 
 	mtx_t lock;
 
-	/* it would be tempting to use pipe_reference here, but that
-	 * really doesn't work well if it isn't the first member of
-	 * the struct, so not quite so awesome to be adding refcnting
-	 * further down the inheritance hierarchy:
-	 */
-	int refcnt;
-
-	/* place for winsys to stash it's own stuff: */
-	void *winsys_priv;
-
 	struct slab_parent_pool transfer_pool;
 
 	uint32_t gmemsize_bytes;

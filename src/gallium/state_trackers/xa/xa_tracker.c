@@ -209,7 +209,6 @@ xa_tracker_create(int drm_fd)
  out_sf_alloc_fail:
     xa_context_destroy(xa->default_ctx);
  out_no_pipe:
-    xa->screen->destroy(xa->screen);
  out_no_screen:
     if (xa->dev)
 	pipe_loader_release(&xa->dev, 1);
@@ -225,7 +224,6 @@ xa_tracker_destroy(struct xa_tracker *xa)
 {
     free(xa->supported_formats);
     xa_context_destroy(xa->default_ctx);
-    xa->screen->destroy(xa->screen);
     pipe_loader_release(&xa->dev, 1);
     free(xa);
 }

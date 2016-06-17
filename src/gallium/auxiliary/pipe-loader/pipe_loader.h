@@ -66,6 +66,7 @@ struct pipe_loader_device {
 
    char *driver_name;
    const struct pipe_loader_ops *ops;
+   struct pipe_screen *pscreen;
 
    driOptionCache option_cache;
    driOptionCache option_info;

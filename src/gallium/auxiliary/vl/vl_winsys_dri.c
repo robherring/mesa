@@ -463,7 +463,6 @@ vl_dri2_screen_destroy(struct vl_screen *vscreen)
    }
 
    vl_dri2_destroy_drawable(scrn);
-   scrn->base.pscreen->destroy(scrn->base.pscreen);
    pipe_loader_release(&scrn->base.dev, 1);
    FREE(scrn);
 }

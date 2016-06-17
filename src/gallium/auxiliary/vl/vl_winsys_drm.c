@@ -81,7 +81,6 @@ vl_drm_screen_destroy(struct vl_screen *vscreen)
 {
    assert(vscreen);
 
-   vscreen->pscreen->destroy(vscreen->pscreen);
    pipe_loader_release(&vscreen->dev, 1);
    FREE(vscreen);
 }

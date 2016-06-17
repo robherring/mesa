@@ -45,14 +45,12 @@ device::device(clover::platform &platform, pipe_loader_device *ldev) :
    pipe = pipe_loader_create_screen(ldev);
    if (!pipe || !pipe->get_param(pipe, PIPE_CAP_COMPUTE)) {
       if (pipe)
-         pipe->destroy(pipe);
+         pipe_loader_release(&ldev, 1);
       throw error(CL_INVALID_DEVICE);
    }
 }
 
 device::~device() {
-   if (pipe)
-      pipe->destroy(pipe);
    if (ldev)
       pipe_loader_release(&ldev, 1);
 }

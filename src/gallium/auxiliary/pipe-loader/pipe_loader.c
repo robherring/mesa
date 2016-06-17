@@ -67,13 +67,20 @@ pipe_loader_probe(struct pipe_loader_device **devs, int ndev)
    return n;
 }
 
+static void
+pipe_loader_release_dev(struct pipe_loader_device *dev)
+{
+   dev->pscreen->destroy(dev->pscreen);
+   dev->ops->release(&dev);
+}
+
 void
 pipe_loader_release(struct pipe_loader_device **devs, int ndev)
 {
    int i;
 
    for (i = 0; i < ndev; i++)
-      devs[i]->ops->release(&devs[i]);
+      pipe_loader_release_dev(devs[i]);
 }
 
 void
@@ -125,12 +132,15 @@ pipe_loader_get_driinfo_xml(const char *driver_name)
 struct pipe_screen *
 pipe_loader_create_screen(struct pipe_loader_device *dev)
 {
+   struct pipe_screen *pscreen;
    struct pipe_screen_config config;
 
    pipe_loader_load_options(dev);
    config.options = &dev->option_cache;
 
-   return dev->ops->create_screen(dev, &config);
+   pscreen = dev->ops->create_screen(dev, &config);
+   dev->pscreen = pscreen;
+   return pscreen;
 }
 
 struct util_dl_library *

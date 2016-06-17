@@ -291,7 +291,6 @@ static void close_prog(struct program *p)
 	pipe_resource_reference(&p->vbuf, NULL);
 
 	p->pipe->destroy(p->pipe);
-	p->screen->destroy(p->screen);
 	pipe_loader_release(&p->dev, 1);
 
 	FREE(p);

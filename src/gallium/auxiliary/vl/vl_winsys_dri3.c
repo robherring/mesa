@@ -732,7 +732,6 @@ vl_dri3_screen_destroy(struct vl_screen *vscreen)
       xcb_unregister_for_special_event(scrn->conn, scrn->special_event);
    }
    scrn->pipe->destroy(scrn->pipe);
-   scrn->base.pscreen->destroy(scrn->base.pscreen);
    pipe_loader_release(&scrn->base.dev, 1);
    FREE(scrn);
 

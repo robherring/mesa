@@ -428,9 +428,6 @@ dri_destroy_screen_helper(struct dri_screen * screen)
    if (screen->st_api && screen->st_api->destroy)
       screen->st_api->destroy(screen->st_api);
 
-   if (screen->base.screen)
-      screen->base.screen->destroy(screen->base.screen);
-
    mtx_destroy(&screen->opencl_func_mutex);
 }
 

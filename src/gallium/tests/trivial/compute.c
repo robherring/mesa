@@ -90,7 +90,6 @@ static void init_ctx(struct context *ctx)
 static void destroy_ctx(struct context *ctx)
 {
         ctx->pipe->destroy(ctx->pipe);
-        ctx->screen->destroy(ctx->screen);
         pipe_loader_release(&ctx->dev, 1);
         FREE(ctx);
 }

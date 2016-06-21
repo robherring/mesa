@@ -29,30 +29,16 @@
 #include "vmw_context.h"
 
 #include "util/u_memory.h"
+#include "util/u_screen.h"
 #include "pipe/p_compiler.h"
-#include "util/u_hash_table.h"
 #ifdef MAJOR_IN_MKDEV
 #include <sys/mkdev.h>
 #endif
 #ifdef MAJOR_IN_SYSMACROS
 #include <sys/sysmacros.h>
 #endif
-#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
-
-static struct util_hash_table *dev_hash = NULL;
-
-static int vmw_dev_compare(void *key1, void *key2)
-{
-   return (major(*(dev_t *)key1) == major(*(dev_t *)key2) &&
-           minor(*(dev_t *)key1) == minor(*(dev_t *)key2)) ? 0 : 1;
-}
-
-static unsigned vmw_dev_hash(void *key)
-{
-   return (major(*(dev_t *) key) << 16) | minor(*(dev_t *) key);
-}
 
 /* Called from vmw_drm_create_screen(), creates and initializes the
  * vmw_winsys_screen structure, which is the main entity in this
@@ -66,29 +52,11 @@ struct vmw_winsys_screen *
 vmw_winsys_create( int fd )
 {
    struct vmw_winsys_screen *vws;
-   struct stat stat_buf;
-
-   if (dev_hash == NULL) {
-      dev_hash = util_hash_table_create(vmw_dev_hash, vmw_dev_compare);
-      if (dev_hash == NULL)
-         return NULL;
-   }
-
-   if (fstat(fd, &stat_buf))
-      return NULL;
-
-   vws = util_hash_table_get(dev_hash, &stat_buf.st_rdev);
-   if (vws) {
-      vws->open_count++;
-      return vws;
-   }
 
    vws = CALLOC_STRUCT(vmw_winsys_screen);
    if (!vws)
       goto out_no_vws;
 
-   vws->device = stat_buf.st_rdev;
-   vws->open_count = 1;
    vws->ioctl.drm_fd = fcntl(fd, F_DUPFD_CLOEXEC, 3);
    vws->base.have_gb_dma = TRUE;
    vws->base.need_to_rebind_resources = FALSE;
@@ -106,14 +74,10 @@ vmw_winsys_create( int fd )
    if (!vmw_winsys_screen_init_svga(vws))
       goto out_no_svga;
 
-   if (util_hash_table_set(dev_hash, &vws->device, vws) != PIPE_OK)
-      goto out_no_hash_insert;
-
    cnd_init(&vws->cs_cond);
    mtx_init(&vws->cs_mutex, mtx_plain);
 
    return vws;
-out_no_hash_insert:
 out_no_svga:
    vmw_pools_cleanup(vws);
 out_no_pools:
@@ -130,14 +94,11 @@ out_no_vws:
 void
 vmw_winsys_destroy(struct vmw_winsys_screen *vws)
 {
-   if (--vws->open_count == 0) {
-      util_hash_table_remove(dev_hash, &vws->device);
-      vmw_pools_cleanup(vws);
-      vws->fence_ops->destroy(vws->fence_ops);
-      vmw_ioctl_cleanup(vws);
-      close(vws->ioctl.drm_fd);
-      mtx_destroy(&vws->cs_mutex);
-      cnd_destroy(&vws->cs_cond);
-      FREE(vws);
-   }
+   vmw_pools_cleanup(vws);
+   vws->fence_ops->destroy(vws->fence_ops);
+   vmw_ioctl_cleanup(vws);
+   close(vws->ioctl.drm_fd);
+   mtx_destroy(&vws->cs_mutex);
+   cnd_destroy(&vws->cs_cond);
+   FREE(vws);
 }

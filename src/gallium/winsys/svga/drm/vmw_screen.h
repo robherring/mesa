@@ -94,12 +94,6 @@ struct vmw_winsys_screen
 
    struct pb_fence_ops *fence_ops;
 
-   /*
-    * Screen instances
-    */
-   dev_t device;
-   int open_count;
-
    cnd_t cs_cond;
    mtx_t cs_mutex;
 };

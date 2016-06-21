@@ -214,19 +214,28 @@ pipe_radeonsi_configuration_query(enum drm_conf conf)
 #ifdef GALLIUM_VMWGFX
 #include "svga/drm/svga_drm_public.h"
 #include "svga/svga_public.h"
+#include "util/u_screen.h"
+
+#include <fcntl.h>
 
 struct pipe_screen *
 pipe_vmwgfx_create_screen(int fd, const struct pipe_screen_config *config)
 {
    struct svga_winsys_screen *sws;
-   struct pipe_screen *screen;
+   struct pipe_screen *screen = pipe_screen_reference(fd);
 
-   sws = svga_drm_winsys_screen_create(fd);
-   if (!sws)
-      return NULL;
+   if (!screen) {
+      sws = svga_drm_winsys_screen_create(fd);
+      if (!sws)
+         return NULL;
 
-   screen = svga_screen_create(sws);
-   return screen ? debug_screen_wrap(screen) : NULL;
+      screen = svga_screen_create(sws);
+      if (!screen)
+         return NULL;
+
+      pipe_screen_reference_init(screen, fcntl(fd, F_DUPFD_CLOEXEC, 3));
+   }
+   return debug_screen_wrap(screen);
 }
 
 #else

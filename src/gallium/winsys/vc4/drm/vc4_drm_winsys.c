@@ -27,15 +27,32 @@
 #include "renderonly/renderonly.h"
 #include "vc4_drm_public.h"
 #include "vc4/vc4_screen.h"
+#include "util/u_screen.h"
 
 struct pipe_screen *
 vc4_drm_screen_create(int fd)
 {
-   return vc4_screen_create(fcntl(fd, F_DUPFD_CLOEXEC, 3), NULL);
+   int dupfd;
+   struct pipe_screen *pscreen = pipe_screen_reference(fd);
+   if (pscreen)
+      return pscreen;
+
+   dupfd = fcntl(fd, F_DUPFD_CLOEXEC, 3);
+   pscreen = vc4_screen_create(dupfd, NULL);
+   pipe_screen_reference_init(pscreen, dupfd);
+   return pscreen;
 }
 
 struct pipe_screen *
 vc4_drm_screen_create_renderonly(struct renderonly *ro)
 {
-   return vc4_screen_create(fcntl(ro->gpu_fd, F_DUPFD_CLOEXEC, 3), ro);
+   int dupfd;
+   struct pipe_screen *pscreen = pipe_screen_reference(ro->gpu_fd);
+   if (pscreen)
+      return pscreen;
+
+   dupfd = fcntl(ro->gpu_fd, F_DUPFD_CLOEXEC, 3);
+   pscreen = vc4_screen_create(dupfd, ro);
+   pipe_screen_reference_init(pscreen, dupfd);
+   return pscreen;
 }

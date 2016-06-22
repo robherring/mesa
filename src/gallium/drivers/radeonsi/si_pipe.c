@@ -843,9 +843,6 @@ static void si_destroy_screen(struct pipe_screen* pscreen)
 	};
 	unsigned i;
 
-	if (!sscreen->b.ws->unref(sscreen->b.ws))
-		return;
-
 	util_queue_destroy(&sscreen->shader_compiler_queue);
 	util_queue_destroy(&sscreen->shader_compiler_queue_low_priority);
 

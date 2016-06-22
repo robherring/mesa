@@ -230,14 +230,6 @@ struct radeon_winsys {
     struct pipe_screen *screen;
 
     /**
-     * Decrement the winsys reference count.
-     *
-     * \param ws  The winsys this function is called for.
-     * \return    True if the winsys and screen should be destroyed.
-     */
-    bool (*unref)(struct radeon_winsys *ws);
-
-    /**
      * Destroy this winsys.
      *
      * \param ws        The winsys this function is called from.

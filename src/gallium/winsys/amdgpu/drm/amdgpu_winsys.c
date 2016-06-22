@@ -48,7 +48,6 @@
 #endif
 
 static struct util_hash_table *dev_tab = NULL;
-static mtx_t dev_tab_mutex = _MTX_INITIALIZER_NP;
 
 /* Helper function to do the ioctls needed for setup and init. */
 static bool do_winsys_init(struct amdgpu_winsys *ws, int fd)
@@ -97,6 +96,7 @@ static void amdgpu_winsys_destroy(struct radeon_winsys *rws)
    pb_cache_deinit(&ws->bo_cache);
    mtx_destroy(&ws->global_bo_list_lock);
    do_winsys_deinit(ws);
+   util_hash_table_remove(dev_tab, ws->dev);
    FREE(rws);
 }
 
@@ -203,26 +203,6 @@ static int compare_dev(void *key1, void *key2)
    return key1 != key2;
 }
 
-static bool amdgpu_winsys_unref(struct radeon_winsys *rws)
-{
-   struct amdgpu_winsys *ws = (struct amdgpu_winsys*)rws;
-   bool destroy;
-
-   /* When the reference counter drops to zero, remove the device pointer
-    * from the table.
-    * This must happen while the mutex is locked, so that
-    * amdgpu_winsys_create in another thread doesn't get the winsys
-    * from the table when the counter drops to 0. */
-   mtx_lock(&dev_tab_mutex);
-
-   destroy = pipe_reference(&ws->reference, NULL);
-   if (destroy && dev_tab)
-      util_hash_table_remove(dev_tab, ws->dev);
-
-   mtx_unlock(&dev_tab_mutex);
-   return destroy;
-}
-
 static const char* amdgpu_get_chip_name(struct radeon_winsys *ws)
 {
    amdgpu_device_handle dev = ((struct amdgpu_winsys *)ws)->dev;
@@ -247,7 +227,6 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
    drmFreeVersion(version);
 
    /* Look up the winsys from the dev table. */
-   mtx_lock(&dev_tab_mutex);
    if (!dev_tab)
       dev_tab = util_hash_table_create(hash_dev, compare_dev);
 
@@ -255,7 +234,6 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
     * for the same fd. */
    r = amdgpu_device_initialize(fd, &drm_major, &drm_minor, &dev);
    if (r) {
-      mtx_unlock(&dev_tab_mutex);
       fprintf(stderr, "amdgpu: amdgpu_device_initialize failed.\n");
       return NULL;
    }
@@ -263,15 +241,14 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
    /* Lookup a winsys if we have already created one for this device. */
    ws = util_hash_table_get(dev_tab, dev);
    if (ws) {
-      pipe_reference(NULL, &ws->reference);
-      mtx_unlock(&dev_tab_mutex);
+      pipe_reference(NULL, &ws->base.screen->reference);
       return &ws->base;
    }
 
    /* Create a new winsys. */
    ws = CALLOC_STRUCT(amdgpu_winsys);
    if (!ws)
-      goto fail;
+      return NULL;
 
    ws->dev = dev;
    ws->info.drm_major = drm_major;
@@ -296,11 +273,7 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
 
    ws->info.min_alloc_size = 1 << AMDGPU_SLAB_MIN_SIZE_LOG2;
 
-   /* init reference */
-   pipe_reference_init(&ws->reference, 1);
-
    /* Set functions. */
-   ws->base.unref = amdgpu_winsys_unref;
    ws->base.destroy = amdgpu_winsys_destroy;
    ws->base.query_info = amdgpu_winsys_query_info;
    ws->base.cs_request_feature = amdgpu_cs_request_feature;
@@ -319,7 +292,6 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
    if (!util_queue_init(&ws->cs_queue, "amdgpu_cs", 8, 1,
                         UTIL_QUEUE_INIT_RESIZE_IF_FULL)) {
       amdgpu_winsys_destroy(&ws->base);
-      mtx_unlock(&dev_tab_mutex);
       return NULL;
    }
 
@@ -331,16 +303,12 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
    ws->base.screen = screen_create(&ws->base, config);
    if (!ws->base.screen) {
       amdgpu_winsys_destroy(&ws->base);
-      mtx_unlock(&dev_tab_mutex);
       return NULL;
    }
 
    util_hash_table_set(dev_tab, dev, ws);
-
-   /* We must unlock the mutex once the winsys is fully initialized, so that
-    * other threads attempting to create the winsys from the same fd will
-    * get a fully initialized winsys and not just half-way initialized. */
-   mtx_unlock(&dev_tab_mutex);
+   ws->base.screen->fd = -1;
+   pipe_reference_init(&ws->base.screen->reference, 1);
 
    return &ws->base;
 
@@ -349,7 +317,5 @@ fail_cache:
    do_winsys_deinit(ws);
 fail_alloc:
    FREE(ws);
-fail:
-   mtx_unlock(&dev_tab_mutex);
    return NULL;
 }

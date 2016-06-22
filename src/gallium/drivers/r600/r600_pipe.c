@@ -612,12 +612,6 @@ static void r600_destroy_screen(struct pipe_screen* pscreen)
 {
 	struct r600_screen *rscreen = (struct r600_screen *)pscreen;
 
-	if (!rscreen)
-		return;
-
-	if (!rscreen->b.ws->unref(rscreen->b.ws))
-		return;
-
 	if (rscreen->global_pool) {
 		compute_memory_pool_delete(rscreen->global_pool);
 	}

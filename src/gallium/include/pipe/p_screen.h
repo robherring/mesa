@@ -41,6 +41,7 @@
 #include "pipe/p_compiler.h"
 #include "pipe/p_format.h"
 #include "pipe/p_defines.h"
+#include "pipe/p_state.h"
 #include "pipe/p_video_enums.h"
 
 
@@ -68,6 +69,8 @@ struct driOptionCache;
  * context.
  */
 struct pipe_screen {
+   struct pipe_reference reference;
+   int fd;
    void (*destroy)( struct pipe_screen * );
 
    const char *(*get_name)( struct pipe_screen * );

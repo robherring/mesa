@@ -71,6 +71,8 @@ struct driOptionCache;
 struct pipe_screen {
    struct pipe_reference reference;
    int fd;
+   void *ws;
+
    void (*destroy)( struct pipe_screen * );
 
    const char *(*get_name)( struct pipe_screen * );

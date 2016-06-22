@@ -50,7 +50,6 @@ enum radeon_generation {
 
 struct radeon_drm_winsys {
     struct radeon_winsys base;
-    struct pipe_reference reference;
     struct pb_cache bo_cache;
     struct pb_slabs bo_slabs;
 

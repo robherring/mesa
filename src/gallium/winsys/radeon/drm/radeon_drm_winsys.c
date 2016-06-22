@@ -37,17 +37,15 @@
 
 #include "util/u_memory.h"
 #include "util/u_hash_table.h"
+#include "util/u_screen.h"
 
 #include <xf86drm.h>
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <radeon_surface.h>
 
-static struct util_hash_table *fd_tab = NULL;
-static mtx_t fd_tab_mutex = _MTX_INITIALIZER_NP;
 
 /* Enable/disable feature access for one command stream.
  * If enable == true, return true on success.
@@ -558,9 +556,6 @@ static void radeon_winsys_destroy(struct radeon_winsys *rws)
     mtx_destroy(&ws->bo_va_mutex);
     mtx_destroy(&ws->bo_fence_lock);
 
-    if (ws->fd >= 0)
-        close(ws->fd);
-
     FREE(rws);
 }
 
@@ -680,48 +675,7 @@ static bool radeon_read_registers(struct radeon_winsys *rws,
     return true;
 }
 
-static unsigned hash_fd(void *key)
-{
-    int fd = pointer_to_intptr(key);
-    struct stat stat;
-    fstat(fd, &stat);
-
-    return stat.st_dev ^ stat.st_ino ^ stat.st_rdev;
-}
-
-static int compare_fd(void *key1, void *key2)
-{
-    int fd1 = pointer_to_intptr(key1);
-    int fd2 = pointer_to_intptr(key2);
-    struct stat stat1, stat2;
-    fstat(fd1, &stat1);
-    fstat(fd2, &stat2);
-
-    return stat1.st_dev != stat2.st_dev ||
-           stat1.st_ino != stat2.st_ino ||
-           stat1.st_rdev != stat2.st_rdev;
-}
-
 DEBUG_GET_ONCE_BOOL_OPTION(thread, "RADEON_THREAD", true)
-
-static bool radeon_winsys_unref(struct radeon_winsys *ws)
-{
-    struct radeon_drm_winsys *rws = (struct radeon_drm_winsys*)ws;
-    bool destroy;
-
-    /* When the reference counter drops to zero, remove the fd from the table.
-     * This must happen while the mutex is locked, so that
-     * radeon_drm_winsys_create in another thread doesn't get the winsys
-     * from the table when the counter drops to 0. */
-    mtx_lock(&fd_tab_mutex);
-
-    destroy = pipe_reference(&rws->reference, NULL);
-    if (destroy && fd_tab)
-        util_hash_table_remove(fd_tab, intptr_to_pointer(rws->fd));
-
-    mtx_unlock(&fd_tab_mutex);
-    return destroy;
-}
 
 #define PTR_TO_UINT(x) ((unsigned)((intptr_t)(x)))
 
@@ -740,24 +694,14 @@ radeon_drm_winsys_create(int fd, const struct pipe_screen_config *config,
 			 radeon_screen_create_t screen_create)
 {
     struct radeon_drm_winsys *ws;
+    struct pipe_screen *pscreen = pipe_screen_reference(fd);
 
-    mtx_lock(&fd_tab_mutex);
-    if (!fd_tab) {
-        fd_tab = util_hash_table_create(hash_fd, compare_fd);
-    }
-
-    ws = util_hash_table_get(fd_tab, intptr_to_pointer(fd));
-    if (ws) {
-        pipe_reference(NULL, &ws->reference);
-        mtx_unlock(&fd_tab_mutex);
-        return &ws->base;
-    }
+    if (pscreen)
+        return pscreen->ws;
 
     ws = CALLOC_STRUCT(radeon_drm_winsys);
-    if (!ws) {
-        mtx_unlock(&fd_tab_mutex);
+    if (!ws)
         return NULL;
-    }
 
     ws->fd = fcntl(fd, F_DUPFD_CLOEXEC, 3);
 
@@ -794,11 +738,8 @@ radeon_drm_winsys_create(int fd, const struct pipe_screen_config *config,
             goto fail_slab;
     }
 
-    /* init reference */
-    pipe_reference_init(&ws->reference, 1);
 
     /* Set functions. */
-    ws->base.unref = radeon_winsys_unref;
     ws->base.destroy = radeon_winsys_destroy;
     ws->base.query_info = radeon_query_info;
     ws->base.cs_request_feature = radeon_cs_request_feature;
@@ -835,16 +776,9 @@ radeon_drm_winsys_create(int fd, const struct pipe_screen_config *config,
     ws->base.screen = screen_create(&ws->base, config);
     if (!ws->base.screen) {
         radeon_winsys_destroy(&ws->base);
-        mtx_unlock(&fd_tab_mutex);
         return NULL;
     }
-
-    util_hash_table_set(fd_tab, intptr_to_pointer(ws->fd), ws);
-
-    /* We must unlock the mutex once the winsys is fully initialized, so that
-     * other threads attempting to create the winsys from the same fd will
-     * get a fully initialized winsys and not just half-way initialized. */
-    mtx_unlock(&fd_tab_mutex);
+    ws->base.screen->ws = &ws->base;
 
     return &ws->base;
 
@@ -854,7 +788,6 @@ fail_slab:
 fail_cache:
     pb_cache_deinit(&ws->bo_cache);
 fail1:
-    mtx_unlock(&fd_tab_mutex);
     if (ws->surf_man)
         radeon_surface_manager_free(ws->surf_man);
     if (ws->fd >= 0)

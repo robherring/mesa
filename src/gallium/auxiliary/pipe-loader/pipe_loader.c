@@ -31,6 +31,7 @@
 #include "util/u_memory.h"
 #include "util/u_string.h"
 #include "util/u_dl.h"
+#include "util/u_screen.h"
 #include "util/u_thread.h"
 #include "util/xmlconfig.h"
 #include "util/xmlpool.h"
@@ -75,7 +76,7 @@ pipe_loader_release_dev(struct pipe_loader_device *dev)
 {
    mtx_lock(&loader_mutex);
 
-   dev->pscreen->destroy(dev->pscreen);
+   pipe_screen_unreference(dev->pscreen);
    dev->ops->release(&dev);
 
    mtx_unlock(&loader_mutex);

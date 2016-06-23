@@ -25,7 +25,6 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/ioctl.h>
-#include <sys/stat.h>
 
 #include "os/os_mman.h"
 #include "os/os_time.h"
@@ -33,6 +32,7 @@
 #include "util/u_format.h"
 #include "util/u_hash_table.h"
 #include "util/u_inlines.h"
+#include "util/u_screen.h"
 #include "state_tracker/drm_driver.h"
 #include "virgl/virgl_screen.h"
 #include "virgl/virgl_public.h"
@@ -815,86 +815,18 @@ virgl_drm_winsys_create(int drmFD)
 
 }
 
-static struct util_hash_table *fd_tab = NULL;
-static mtx_t virgl_screen_mutex = _MTX_INITIALIZER_NP;
-
-static void
-virgl_drm_screen_destroy(struct pipe_screen *pscreen)
-{
-   struct virgl_screen *screen = virgl_screen(pscreen);
-   boolean destroy;
-
-   mtx_lock(&virgl_screen_mutex);
-   destroy = --screen->refcnt == 0;
-   if (destroy) {
-      int fd = virgl_drm_winsys(screen->vws)->fd;
-      util_hash_table_remove(fd_tab, intptr_to_pointer(fd));
-   }
-   mtx_unlock(&virgl_screen_mutex);
-
-   if (destroy) {
-      pscreen->destroy = screen->winsys_priv;
-      pscreen->destroy(pscreen);
-   }
-}
-
-static unsigned hash_fd(void *key)
-{
-   int fd = pointer_to_intptr(key);
-   struct stat stat;
-   fstat(fd, &stat);
-
-   return stat.st_dev ^ stat.st_ino ^ stat.st_rdev;
-}
-
-static int compare_fd(void *key1, void *key2)
-{
-   int fd1 = pointer_to_intptr(key1);
-   int fd2 = pointer_to_intptr(key2);
-   struct stat stat1, stat2;
-   fstat(fd1, &stat1);
-   fstat(fd2, &stat2);
-
-   return stat1.st_dev != stat2.st_dev ||
-         stat1.st_ino != stat2.st_ino ||
-         stat1.st_rdev != stat2.st_rdev;
-}
-
 struct pipe_screen *
 virgl_drm_screen_create(int fd)
 {
-   struct pipe_screen *pscreen = NULL;
+   int dupfd;
+   struct virgl_winsys *vws;
+   struct pipe_screen *pscreen = pipe_screen_reference(fd);
+   if (pscreen)
+      return pscreen;
 
-   mtx_lock(&virgl_screen_mutex);
-   if (!fd_tab) {
-      fd_tab = util_hash_table_create(hash_fd, compare_fd);
-      if (!fd_tab)
-         goto unlock;
-   }
-
-   pscreen = util_hash_table_get(fd_tab, intptr_to_pointer(fd));
-   if (pscreen) {
-      virgl_screen(pscreen)->refcnt++;
-   } else {
-      struct virgl_winsys *vws;
-      int dup_fd = fcntl(fd, F_DUPFD_CLOEXEC, 3);
-
-      vws = virgl_drm_winsys_create(dup_fd);
-
-      pscreen = virgl_create_screen(vws);
-      if (pscreen) {
-         util_hash_table_set(fd_tab, intptr_to_pointer(dup_fd), pscreen);
-
-         /* Bit of a hack, to avoid circular linkage dependency,
-          * ie. pipe driver having to call in to winsys, we
-          * override the pipe drivers screen->destroy():
-          */
-         virgl_screen(pscreen)->winsys_priv = pscreen->destroy;
-         pscreen->destroy = virgl_drm_screen_destroy;
-      }
-   }
-
-unlock:
-   mtx_unlock(&virgl_screen_mutex);
+   dupfd = fcntl(fd, F_DUPFD_CLOEXEC, 3);
+   vws = virgl_drm_winsys_create(dupfd);
+   pscreen = virgl_create_screen(vws);
+   pipe_screen_reference_init(pscreen, dupfd);
    return pscreen;
 }

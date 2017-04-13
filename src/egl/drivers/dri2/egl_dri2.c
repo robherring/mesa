@@ -652,8 +652,8 @@ dri2_setup_screen(_EGLDisplay *disp)
       if (dri2_dpy->fence->base.version >= 2) {
          unsigned capabilities =
             dri2_dpy->fence->get_capabilities(dri2_dpy->dri_screen);
-         disp->Extensions.ANDROID_native_fence_sync =
-            (capabilities & __DRI_FENCE_CAP_NATIVE_FD) != 0;
+         disp->Extensions.ANDROID_native_fence_sync =EGL_TRUE;
+//            (capabilities & __DRI_FENCE_CAP_NATIVE_FD) != 0;
       }
    }
 
@@ -2632,6 +2632,8 @@ dri2_create_sync(_EGLDriver *drv, _EGLDisplay *dpy,
                                     dri2_ctx->dri_context,
                                     dri2_sync->base.SyncFd);
       }
+      _eglLog(_EGL_WARNING, "created fence fd - %d",
+            dri2_sync->base.SyncFd);
       if (!dri2_sync->fence) {
          _eglError(EGL_BAD_ATTRIBUTE, "eglCreateSyncKHR");
          free(dri2_sync);
@@ -2687,6 +2689,8 @@ dri2_dup_native_fence_fd(_EGLDriver *drv, _EGLDisplay *dpy, _EGLSync *sync)
        */
       sync->SyncFd = dri2_dpy->fence->get_fence_fd(dri2_dpy->dri_screen,
                                                    dri2_sync->fence);
+      _eglLog(_EGL_WARNING, "getting fence fd - %d, %d",
+            sync->SyncFd, dri2_sync->fence);
    }
 
    if (sync->SyncFd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {

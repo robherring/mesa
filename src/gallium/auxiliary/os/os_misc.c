@@ -126,7 +126,7 @@ int android_fputs(const char * __restrict m, FILE * __restrict f)
    return 0;
 }
 
-int fprintf(FILE * __restrict f, const char * __restrict _Nonnull format, ...)
+int android_fprintf(FILE * __restrict f, const char * __restrict _Nonnull format, ...)
 {
    va_list ap;
    va_start(ap, format);

@@ -26,7 +26,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  **************************************************************************/
-
+#define DEBUG
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -53,8 +53,11 @@
 #include "state_tracker/drm_driver.h"
 #include "kms_dri_sw_winsys.h"
 
+#include <log/log.h>
+
 #ifdef DEBUG
-#define DEBUG_PRINT(msg, ...) fprintf(stderr, msg, __VA_ARGS__)
+#define LOG_TAG "KMS-WS"
+#define DEBUG_PRINT(msg, ...) ALOGE(msg, __VA_ARGS__)
 #else
 #define DEBUG_PRINT(msg, ...)
 #endif

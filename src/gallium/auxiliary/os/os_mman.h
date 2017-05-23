@@ -45,10 +45,6 @@
 #  error Unsupported OS
 #endif
 
-#if defined(PIPE_OS_ANDROID)
-#  include <errno.h> /* for EINVAL */
-#endif
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -56,19 +52,8 @@ extern "C" {
 
 #if defined(PIPE_OS_ANDROID) && !defined(__LP64__)
 
-extern void *__mmap2(void *, size_t, int, int, int, size_t);
-
-static inline void *os_mmap(void *addr, size_t length, int prot, int flags,
-                            int fd, loff_t offset)
-{
-   /* offset must be aligned to 4096 (not necessarily the page size) */
-   if (unlikely(offset & 4095)) {
-      errno = EINVAL;
-      return MAP_FAILED;
-   }
-
-   return __mmap2(addr, length, prot, flags, fd, (size_t) (offset >> 12));
-}
+#  define os_mmap(addr, length, prot, flags, fd, offset) \
+             mmap64(addr, length, prot, flags, fd, offset)
 
 #  define os_munmap(addr, length) \
              munmap(addr, length)

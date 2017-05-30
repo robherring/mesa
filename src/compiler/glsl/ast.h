@@ -50,6 +50,8 @@ class ast_node {
 public:
    DECLARE_LINEAR_ZALLOC_CXX_OPERATORS(ast_node);
 
+   virtual ~ast_node() {};
+
    /**
     * Print an AST node in something approximating the original GLSL code
     */

@@ -392,6 +392,7 @@ struct ir_lower_jumps_visitor : public ir_control_flow_visitor {
       }
    }
 
+   using ir_visitor::visit;
    virtual void visit(class ir_loop_jump * ir)
    {
       /* Eliminate all instructions after each one, since they are

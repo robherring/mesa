@@ -50,7 +50,9 @@ struct assignment_entry {
 class ir_constant_variable_visitor : public ir_hierarchical_visitor {
 public:
    virtual ir_visitor_status visit_enter(ir_dereference_variable *);
+   using ir_hierarchical_visitor::visit;
    virtual ir_visitor_status visit(ir_variable *);
+   using ir_hierarchical_visitor::visit_enter;
    virtual ir_visitor_status visit_enter(ir_assignment *);
    virtual ir_visitor_status visit_enter(ir_call *);
 

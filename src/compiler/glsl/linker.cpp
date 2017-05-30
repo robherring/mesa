@@ -241,6 +241,7 @@ public:
       /* empty */
    }
 
+   using ir_hierarchical_visitor::visit;
    virtual ir_visitor_status visit(ir_variable *var)
    {
       if (!var->type->is_array() || var->data.mode != ir_var_shader_in ||
@@ -1411,6 +1412,7 @@ public:
       ralloc_free(this->mem_ctx);
    }
 
+   using ir_hierarchical_visitor::visit;
    virtual ir_visitor_status visit(ir_variable *var)
    {
       const glsl_type *type_without_array;

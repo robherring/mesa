@@ -91,6 +91,7 @@ public:
       }
    }
 
+   using ir_hierarchical_visitor::visit;
    virtual ir_visitor_status visit(ir_dereference_variable *ir)
    {
       use_channels(ir->var, ~0);

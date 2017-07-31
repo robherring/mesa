@@ -147,7 +147,7 @@ kms_sw_displaytarget_create(struct sw_winsys *ws,
 
    list_add(&kms_sw_dt->link, &kms_sw->bo_list);
 
-   DEBUG_PRINT("KMS-DEBUG: created buffer %u (size %u)\n", kms_sw_dt->handle, kms_sw_dt->size);
+   DEBUG_PRINT("KMS-DEBUG: created buffer %u (size %u), format=%d\n", kms_sw_dt->handle, kms_sw_dt->size, format);
 
    *stride = kms_sw_dt->stride;
    return (struct sw_displaytarget *)kms_sw_dt;
@@ -194,21 +194,26 @@ kms_sw_displaytarget_map(struct sw_winsys *ws,
    struct drm_mode_map_dumb map_req;
    int prot, ret;
 
+   if (kms_sw_dt->mapped)
+      return kms_sw_dt->mapped;
+
    memset(&map_req, 0, sizeof map_req);
    map_req.handle = kms_sw_dt->handle;
    ret = drmIoctl(kms_sw->fd, DRM_IOCTL_MODE_MAP_DUMB, &map_req);
    if (ret)
       return NULL;
 
-   prot = (flags == PIPE_TRANSFER_READ) ? PROT_READ : (PROT_READ | PROT_WRITE);
+   prot = PROT_READ | PROT_WRITE; //(flags == PIPE_TRANSFER_READ) ? PROT_READ : (PROT_READ | PROT_WRITE);
    kms_sw_dt->mapped = mmap(0, kms_sw_dt->size, prot, MAP_SHARED,
                             kms_sw->fd, map_req.offset);
 
-   if (kms_sw_dt->mapped == MAP_FAILED)
+   if (kms_sw_dt->mapped == MAP_FAILED) {
+      kms_sw_dt->mapped = NULL;
       return NULL;
+   }
 
-   DEBUG_PRINT("KMS-DEBUG: mapped buffer %u (size %u) at %p\n",
-         kms_sw_dt->handle, kms_sw_dt->size, kms_sw_dt->mapped);
+   DEBUG_PRINT("KMS-DEBUG: mapped buffer %u (size %u) at %p, %x\n",
+         kms_sw_dt->handle, kms_sw_dt->size, kms_sw_dt->mapped, *((int *)kms_sw_dt->mapped));
 
    return kms_sw_dt->mapped;
 }
@@ -270,6 +275,8 @@ kms_sw_displaytarget_add_from_prime(struct kms_sw_winsys *kms_sw, int fd,
    lseek(fd, 0, SEEK_SET);
 
    list_add(&kms_sw_dt->link, &kms_sw->bo_list);
+
+   DEBUG_PRINT("KMS-DEBUG: imported buffer %d\n", handle);
 
    return kms_sw_dt;
 }

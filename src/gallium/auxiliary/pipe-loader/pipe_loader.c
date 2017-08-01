@@ -31,6 +31,7 @@
 #include "util/u_memory.h"
 #include "util/u_string.h"
 #include "util/u_dl.h"
+#include "util/u_thread.h"
 #include "util/xmlconfig.h"
 #include "util/xmlpool.h"
 
@@ -42,6 +43,8 @@
 #endif
 
 #define MODULE_PREFIX "pipe_"
+
+static mtx_t loader_mutex = _MTX_INITIALIZER_NP;
 
 static int (*backends[])(struct pipe_loader_device **, int) = {
 #ifdef HAVE_LIBDRM
@@ -70,11 +73,15 @@ pipe_loader_probe(struct pipe_loader_device **devs, int ndev)
 static void
 pipe_loader_release_dev(struct pipe_loader_device *dev)
 {
+   mtx_lock(&loader_mutex);
+
    dev->pscreen->destroy(dev->pscreen);
    dev->ops->release(&dev);
+
+   mtx_unlock(&loader_mutex);
 }
 
-void
+PUBLIC void
 pipe_loader_release(struct pipe_loader_device **devs, int ndev)
 {
    int i;
@@ -129,7 +136,7 @@ pipe_loader_get_driinfo_xml(const char *driver_name)
    return xml;
 }
 
-struct pipe_screen *
+PUBLIC struct pipe_screen *
 pipe_loader_create_screen(struct pipe_loader_device *dev)
 {
    struct pipe_screen *pscreen;
@@ -138,8 +145,10 @@ pipe_loader_create_screen(struct pipe_loader_device *dev)
    pipe_loader_load_options(dev);
    config.options = &dev->option_cache;
 
+   mtx_lock(&loader_mutex);
    pscreen = dev->ops->create_screen(dev, &config);
    dev->pscreen = pscreen;
+   mtx_unlock(&loader_mutex);
    return pscreen;
 }
 

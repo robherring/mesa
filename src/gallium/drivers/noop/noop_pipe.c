@@ -29,6 +29,7 @@
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
 #include "util/u_format.h"
+#include "util/u_screen.h"
 #include "util/u_upload_mgr.h"
 #include "noop_public.h"
 
@@ -431,7 +432,7 @@ static void noop_destroy_screen(struct pipe_screen *screen)
    struct noop_pipe_screen *noop_screen = (struct noop_pipe_screen*)screen;
    struct pipe_screen *oscreen = noop_screen->oscreen;
 
-   oscreen->destroy(oscreen);
+   pipe_screen_unreference(oscreen);
    FREE(screen);
 }
 

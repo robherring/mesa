@@ -27,6 +27,7 @@
 
 #include "util/u_format.h"
 #include "util/u_memory.h"
+#include "util/u_screen.h"
 #include "util/simple_list.h"
 
 #include "tr_dump.h"
@@ -488,7 +489,7 @@ trace_screen_destroy(struct pipe_screen *_screen)
    trace_dump_arg(ptr, screen);
    trace_dump_call_end();
 
-   screen->destroy(screen);
+   pipe_screen_unreference(screen);
 
    FREE(tr_scr);
 }

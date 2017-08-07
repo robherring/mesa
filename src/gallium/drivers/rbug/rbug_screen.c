@@ -30,6 +30,7 @@
 #include "pipe/p_state.h"
 #include "util/u_memory.h"
 #include "util/u_debug.h"
+#include "util/u_screen.h"
 #include "util/simple_list.h"
 
 #include "rbug_public.h"
@@ -45,7 +46,7 @@ rbug_screen_destroy(struct pipe_screen *_screen)
    struct rbug_screen *rb_screen = rbug_screen(_screen);
    struct pipe_screen *screen = rb_screen->screen;
 
-   screen->destroy(screen);
+   pipe_screen_unreference(screen);
 
    FREE(rb_screen);
 }

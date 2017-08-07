@@ -28,6 +28,7 @@
 #include "dd_pipe.h"
 #include "dd_public.h"
 #include "util/u_memory.h"
+#include "util/u_screen.h"
 #include <stdio.h>
 
 
@@ -314,7 +315,7 @@ dd_screen_destroy(struct pipe_screen *_screen)
    struct dd_screen *dscreen = dd_screen(_screen);
    struct pipe_screen *screen = dscreen->screen;
 
-   screen->destroy(screen);
+   pipe_screen_unreference(screen);
    FREE(dscreen);
 }
 

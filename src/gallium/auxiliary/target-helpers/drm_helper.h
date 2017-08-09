@@ -389,4 +389,46 @@ pipe_imx_drm_create_screen(int fd, const struct pipe_screen_config *config)
 #endif
 
 
+#ifdef GALLIUM_SOFTPIPE
+#include "sw_helper_public.h"
+#include "sw/kms-dri/kms_dri_sw_winsys.h"
+#include "state_tracker/sw_winsys.h"
+
+struct pipe_screen *
+pipe_kms_swrast_create_screen(int fd, const struct pipe_screen_config *config)
+{
+   struct pipe_screen *screen = pipe_screen_reference(fd);
+   struct sw_winsys *ws;
+   int dupfd;
+
+   if (screen)
+      return debug_screen_wrap(screen);
+
+   dupfd = fcntl(fd, F_DUPFD_CLOEXEC, 3);
+   ws = kms_dri_create_winsys(dupfd);
+
+   screen = sw_screen_create(ws);
+   if (!screen) {
+      ws->destroy(ws);
+      close(dupfd);
+      return NULL;
+   }
+
+   pipe_screen_reference_init(screen, dupfd);
+
+   return screen ? debug_screen_wrap(screen) : NULL;
+}
+
+#else
+
+struct pipe_screen *
+pipe_kms_swrast_create_screen(int fd, const struct pipe_screen_config *config)
+{
+   fprintf(stderr, "kms-swrast: driver missing\n");
+   return NULL;
+}
+
+#endif
+
+
 #endif /* DRM_HELPER_H */

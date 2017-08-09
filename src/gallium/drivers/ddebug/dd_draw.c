@@ -38,6 +38,10 @@
 #include "os/os_time.h"
 #include <inttypes.h>
 
+#include <log/log.h>
+
+#define LOG_TAG "KMS-WS"
+#define fprintf(f, ...) ALOGE(__VA_ARGS__)
 
 FILE *
 dd_get_file_stream(struct dd_screen *dscreen, unsigned apitrace_call_number)
@@ -47,7 +51,7 @@ dd_get_file_stream(struct dd_screen *dscreen, unsigned apitrace_call_number)
 
    FILE *f = dd_get_debug_file(dscreen->verbose);
    if (!f)
-      return NULL;
+      f = stderr;
 
    if (os_get_command_line(cmd_line, sizeof(cmd_line)))
       fprintf(f, "Command: %s\n", cmd_line);

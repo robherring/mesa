@@ -29,6 +29,7 @@ GALLIUM_TARGET_DRIVERS :=
 
 SUBDIRS := auxiliary
 SUBDIRS += auxiliary/pipe-loader
+SUBDIRS += drivers/ddebug
 
 #
 # Gallium drivers and their respective winsys

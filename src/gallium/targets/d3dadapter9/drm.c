@@ -96,12 +96,10 @@ drm_destroy( struct d3dadapter9_context *ctx )
 {
     struct d3dadapter9drm_context *drm = (struct d3dadapter9drm_context *)ctx;
 
-    if (ctx->ref)
-        ctx->ref->destroy(ctx->ref);
-    /* because ref is a wrapper around hal, freeing ref frees hal too. */
-    else if (ctx->hal)
-        ctx->hal->destroy(ctx->hal);
-
+    /*
+     * ctx->ref and ctx->hal are destroyed by releasing the pipe_loader devices.
+     * because ref is a wrapper around hal, freeing ref frees hal too.
+     */
     if (drm->swdev)
         pipe_loader_release(&drm->swdev, 1);
     if (drm->dev)

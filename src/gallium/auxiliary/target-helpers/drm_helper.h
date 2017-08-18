@@ -6,6 +6,9 @@
 #include "target-helpers/drm_helper_public.h"
 #include "state_tracker/drm_driver.h"
 #include "util/xmlpool.h"
+#include "util/u_screen.h"
+
+#include <sys/fcntl.h>
 
 static const struct drm_conf_ret throttle_ret = {
    .type = DRM_CONF_INT,

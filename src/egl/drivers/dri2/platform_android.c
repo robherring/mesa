@@ -186,7 +186,7 @@ droid_window_dequeue_buffer(struct dri2_egl_surface *dri2_surf)
         close(fence_fd);
    }
 
-   dri2_surf->buffer->common.incRef(&dri2_surf->buffer->common);
+//   dri2_surf->buffer->common.incRef(&dri2_surf->buffer->common);
 
    /* Record all the buffers created by ANativeWindow and update back buffer
     * for updating buffer's age in swap_buffers.
@@ -244,7 +244,7 @@ droid_window_enqueue_buffer(_EGLDisplay *disp, struct dri2_egl_surface *dri2_sur
    dri2_surf->window->queueBuffer(dri2_surf->window, dri2_surf->buffer,
                                   fence_fd);
 
-   dri2_surf->buffer->common.decRef(&dri2_surf->buffer->common);
+//   dri2_surf->buffer->common.decRef(&dri2_surf->buffer->common);
    dri2_surf->buffer = NULL;
    dri2_surf->back = NULL;
 
@@ -892,13 +892,17 @@ droid_create_image_khr(_EGLDriver *drv, _EGLDisplay *disp,
 		       _EGLContext *ctx, EGLenum target,
 		       EGLClientBuffer buffer, const EGLint *attr_list)
 {
+  _EGLImage *eimg;
    switch (target) {
    case EGL_NATIVE_BUFFER_ANDROID:
-      return dri2_create_image_android_native_buffer(disp, ctx,
+      eimg = dri2_create_image_android_native_buffer(disp, ctx,
             (struct ANativeWindowBuffer *) buffer);
+      break;
    default:
-      return dri2_create_image_khr(drv, disp, ctx, target, buffer, attr_list);
+      eimg = dri2_create_image_khr(drv, disp, ctx, target, buffer, attr_list);
    }
+  _eglLog(_EGL_WARNING, "eglCreateEGLImageKHR: eglimage=%p", eimg);
+  return eimg;
 }
 
 static void

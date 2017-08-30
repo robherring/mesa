@@ -1844,7 +1844,6 @@ dri2_create_image_from_dri(_EGLDisplay *disp, __DRIimage *dri_image)
 
    dri2_img->dri_image = dri_image;
 
-   _eglLog(_EGL_WARNING, "dri2_create_image - %p", dri_image);
    return &dri2_img->base;
 }
 
@@ -2685,9 +2684,7 @@ dri2_destroy_image_khr(_EGLDriver *drv, _EGLDisplay *disp, _EGLImage *image)
 
    (void) drv;
 
-   _eglLog(_EGL_WARNING, "dri2_destroy_image_khr - %p", dri2_img->dri_image);
    dri2_dpy->image->destroyImage(dri2_img->dri_image);
-   dri2_img->dri_image = (void *)0xdeadbeef;
    free(dri2_img);
 
    return EGL_TRUE;

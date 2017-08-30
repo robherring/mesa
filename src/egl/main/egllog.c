@@ -52,7 +52,7 @@
 #endif /* HAVE_ANDROID_PLATFORM */
 
 #define MAXSTRING 1000
-#define FALLBACK_LOG_LEVEL _EGL_DEBUG
+#define FALLBACK_LOG_LEVEL _EGL_WARNING
 
 
 static struct {

@@ -44,8 +44,6 @@
 #include "util/u_debug.h"
 #include "util/u_format_s3tc.h"
 
-#include <log/log.h>
-
 #define MSAA_VISUAL_MAX_SAMPLES 32
 
 #undef false
@@ -380,17 +378,12 @@ dri_get_egl_image(struct st_manager *smapi,
    struct dri_screen *screen = (struct dri_screen *)smapi;
    __DRIimage *img = NULL;
 
-   ALOGE("egl_image=%p", egl_image);
-
    if (screen->lookup_egl_image) {
       img = screen->lookup_egl_image(screen, egl_image);
    }
 
    if (!img)
       return FALSE;
-
-   ALOGE("img=%p", img);
-   ALOGE("texture=%p", img->texture);
 
    stimg->texture = NULL;
    pipe_resource_reference(&stimg->texture, img->texture);

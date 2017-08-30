@@ -231,8 +231,6 @@ const __DRI2fenceExtension dri2FenceExtension = {
    .get_fence_fd = dri2_get_fence_fd,
 };
 
-#include <log/log.h>
-
 __DRIimage *
 dri2_lookup_egl_image(struct dri_screen *screen, void *handle)
 {
@@ -245,7 +243,6 @@ dri2_lookup_egl_image(struct dri_screen *screen, void *handle)
    img = loader->lookupEGLImage(screen->sPriv,
 				handle, screen->sPriv->loaderPrivate);
 
-   ALOGE("dri2_lookup_egl_image - handle=%p, img=%p", handle, img);
    return img;
 }
 
@@ -318,7 +315,6 @@ void
 dri2_destroy_image(__DRIimage *img)
 {
    pipe_resource_reference(&img->texture, NULL);
-   ALOGE("dri2_destroy_image - %p", img);
    FREE(img);
 }
 

@@ -32,6 +32,8 @@ LOCAL_EXPORT_C_INCLUDE_DIRS := \
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/main
 
+LOCAL_SHARED_LIBRARIES := liblog
+
 LOCAL_STATIC_LIBRARIES := \
 	libmesa_util \
 	libmesa_loader

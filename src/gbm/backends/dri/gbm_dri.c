@@ -51,6 +51,10 @@
 #include "util/debug.h"
 #include "util/macros.h"
 
+#include <log/log.h>
+#define fprintf(f, ...) ALOGE(__VA_ARGS__)
+
+
 /* For importing wl_buffer */
 #if HAVE_WAYLAND_PLATFORM
 #include "../../../egl/wayland/wayland-drm/wayland-drm.h"
